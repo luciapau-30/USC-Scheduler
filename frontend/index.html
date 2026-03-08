@@ -1,0 +1,28 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,600;0,9..40,700;1,9..40,400&display=swap" rel="stylesheet" />
+    <title>Trojan Scheduler</title>
+  </head>
+  <body style="margin:0;min-height:100vh;background:#0f1419;color:#e6edf3;font-family:system-ui,sans-serif">
+    <script>window.global = window;</script>
+    <div id="root" style="min-height:100vh;display:flex;align-items:center;justify-content:center">
+      <p style="margin:0;font-size:18px">Loading Trojan Scheduler…</p>
+    </div>
+    <script type="module" src="/src/main.tsx"></script>
+    <script>
+      window.addEventListener('load', function() {
+        setTimeout(function() {
+          var root = document.getElementById('root');
+          if (root && root.innerText.indexOf('Loading Trojan Scheduler') !== -1 && root.querySelector('p')) {
+            root.innerHTML = '<div style="padding:24px;max-width:480px;margin:40px auto;background:#1a2332;border:1px solid #2d3a4f;border-radius:8px;color:#e6edf3;font-family:system-ui,sans-serif"><h2 style="margin:0 0 12px">App didn\'t start</h2><p style="margin:0;font-size:14px">Open <strong>Developer Tools</strong> (F12 or right‑click → Inspect), go to the <strong>Console</strong> tab, and look for red errors. Fix or report the error shown there.</p><p style="margin:12px 0 0;font-size:14px">Make sure the frontend is running: <code style="background:#0f1419;padding:2px 6px">npm run dev</code> in the <code style="background:#0f1419;padding:2px 6px">frontend</code> folder.</p></div>';
+          }
+        }, 2000);
+      });
+    </script>
+  </body>
+</html>
