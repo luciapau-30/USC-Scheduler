@@ -1,0 +1,56 @@
+.schedule-page h1 {
+  margin: 0 0 24px;
+  font-size: 1.5rem;
+}
+
+.schedule-hint {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin-bottom: 16px;
+}
+
+.schedule-error {
+  color: var(--error);
+  margin-bottom: 12px;
+}
+
+.schedule-warn {
+  color: var(--warn);
+  margin-bottom: 12px;
+}
+
+.schedule-empty {
+  color: var(--muted);
+}
+
+.schedule-list {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.schedule-item {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--border);
+}
+
+.schedule-times {
+  color: var(--muted);
+  font-size: 0.875rem;
+}
+
+.schedule-remove {
+  background: transparent;
+  border: 1px solid var(--border);
+  color: var(--muted);
+  padding: 6px 12px;
+  border-radius: 6px;
+}
+
+.schedule-remove:hover {
+  color: var(--error);
+  border-color: var(--error);
+}

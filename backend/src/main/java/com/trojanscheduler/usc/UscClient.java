@@ -2,6 +2,7 @@ package com.trojanscheduler.usc;
 
 import java.time.Duration;
 import java.util.List;
+import java.util.concurrent.TimeoutException;
 
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatusCode;
@@ -67,11 +68,24 @@ public class UscClient {
 				return Mono.delay(Duration.ofSeconds(delay)).then(getInternal(normalizedPath));
 			});
 		}
-		return mono
+		Mono<String> withTimeoutHandling = mono
 				.retryWhen(Retry.backoff(retryMaxAttempts, Duration.ofMillis(retryInitialBackoffMs))
 						.maxBackoff(Duration.ofMillis(retryMaxBackoffMs))
 						.filter(t -> t instanceof UscException && ((UscException) t).isServerError()))
-				.block();
+				.onErrorMap(t -> isTimeout(t), t -> new UscException("USC API timed out. Please try again in a moment.", 504, null));
+		try {
+			return withTimeoutHandling.block();
+		} catch (Exception e) {
+			if (isTimeout(e)) throw new UscException("USC API timed out. Please try again in a moment.", 504, null);
+			throw e;
+		}
+	}
+
+	private static boolean isTimeout(Throwable t) {
+		for (Throwable x = t; x != null; x = x.getCause()) {
+			if (x instanceof TimeoutException) return true;
+		}
+		return false;
 	}
 
 	/**

@@ -31,7 +31,8 @@ public class AuthExceptionHandler {
 
 	@ExceptionHandler(UscException.class)
 	public ResponseEntity<Map<String, String>> handleUscException(UscException e) {
-		HttpStatus status = e.isRateLimited() ? HttpStatus.SERVICE_UNAVAILABLE
+		HttpStatus status = e.getStatusCode() == 504 ? HttpStatus.SERVICE_UNAVAILABLE
+				: e.isRateLimited() ? HttpStatus.SERVICE_UNAVAILABLE
 				: e.isServerError() ? HttpStatus.BAD_GATEWAY
 				: HttpStatus.BAD_GATEWAY;
 		String message = e.getMessage() != null ? e.getMessage() : "Course data service unavailable";
@@ -61,8 +62,8 @@ public class AuthExceptionHandler {
 	 */
 	@ExceptionHandler(DataIntegrityViolationException.class)
 	public ResponseEntity<Map<String, String>> handleDataIntegrityViolation(DataIntegrityViolationException e) {
-		String message = isDuplicateEmailConstraint(e) ? DUPLICATE_EMAIL_MESSAGE
-				: isDuplicateWatchlistConstraint(e) ? DUPLICATE_WATCHLIST_MESSAGE
+		String message = isDuplicateWatchlistConstraint(e) ? DUPLICATE_WATCHLIST_MESSAGE
+				: isDuplicateEmailConstraint(e) ? DUPLICATE_EMAIL_MESSAGE
 				: "A conflict occurred. Please try again.";
 		return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("error", message));
 	}

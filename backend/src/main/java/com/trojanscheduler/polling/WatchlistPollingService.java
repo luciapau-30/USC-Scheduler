@@ -10,7 +10,6 @@ import java.util.Optional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.stereotype.Service;
-import org.springframework.transaction.annotation.Transactional;
 
 import com.trojanscheduler.notification.NotificationEvent;
 import com.trojanscheduler.notification.NotificationEventRepository;
@@ -113,7 +112,8 @@ public class WatchlistPollingService {
 		}
 	}
 
-	@Transactional
+	// NOTE: not @Transactional — this is called from within the same class so Spring AOP
+	// would bypass the proxy. Spring Data's save() provides its own transaction per call.
 	public void applySectionState(String termCode, String sisSectionId, SectionSeatState state, String rawJson) {
 		Instant now = Instant.now();
 		Optional<SectionSnapshot> existing = sectionSnapshotRepository.findByTermCodeAndSisSectionId(termCode, sisSectionId);
