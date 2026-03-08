@@ -12,6 +12,7 @@ public record SectionSeatState(
 ) {
 	public static final String STATUS_OPEN = "Open";
 	public static final String STATUS_CLOSED = "Closed";
+	public static final String STATUS_CANCELLED = "Cancelled";
 	public static final String STATUS_UNKNOWN = "UNKNOWN";
 
 	/** True if there is at least one open seat. */

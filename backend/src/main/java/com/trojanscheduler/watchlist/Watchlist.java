@@ -32,6 +32,10 @@ public class Watchlist {
 	@Column(name = "sis_section_id", nullable = false, length = 32)
 	private String sisSectionId;
 
+	/** Course prefix (e.g. MATH, CSCI) for polling: search by prefix returns all sections. Nullable for legacy rows. */
+	@Column(name = "course_prefix", length = 16)
+	private String coursePrefix;
+
 	@Column(nullable = false)
 	private int priority = 0;
 
@@ -40,10 +44,11 @@ public class Watchlist {
 
 	protected Watchlist() {}
 
-	public Watchlist(User user, String termCode, String sisSectionId, int priority, Instant createdAt) {
+	public Watchlist(User user, String termCode, String sisSectionId, String coursePrefix, int priority, Instant createdAt) {
 		this.user = user;
 		this.termCode = termCode;
 		this.sisSectionId = sisSectionId;
+		this.coursePrefix = coursePrefix;
 		this.priority = priority;
 		this.createdAt = createdAt;
 	}
@@ -62,6 +67,10 @@ public class Watchlist {
 
 	public String getSisSectionId() {
 		return sisSectionId;
+	}
+
+	public String getCoursePrefix() {
+		return coursePrefix;
 	}
 
 	public int getPriority() {

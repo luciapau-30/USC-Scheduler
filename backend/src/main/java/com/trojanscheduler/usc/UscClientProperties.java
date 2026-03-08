@@ -14,8 +14,8 @@ public class UscClientProperties {
 	private int retryMaxAttempts = 3;
 	private long retryInitialBackoffMs = 1000;
 	private long retryMaxBackoffMs = 30000;
-	private String searchPathTemplate = "/api/classes?term={termCode}&q={q}";
-	private String sectionPathTemplate = "/api/section?term={termCode}&section={sisSectionId}";
+	private String searchPathTemplate = "/api/Search/Basic?termCode={termCode}&searchTerm={q}";
+	private String sectionPathTemplate = "/api/Search/Basic?termCode={termCode}&searchTerm={prefix}";
 
 	public String getBaseUrl() {
 		return baseUrl;

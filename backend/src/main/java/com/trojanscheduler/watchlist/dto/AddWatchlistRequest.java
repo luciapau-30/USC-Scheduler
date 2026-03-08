@@ -14,6 +14,10 @@ public record AddWatchlistRequest(
 		@Size(max = 32)
 		String sisSectionId,
 
+		/** Course prefix (e.g. MATH, CSCI) from search; used for efficient polling. Optional for backward compatibility. */
+		@Size(max = 16)
+		String coursePrefix,
+
 		@Min(0) @Max(1)
 		int priority
 ) {}

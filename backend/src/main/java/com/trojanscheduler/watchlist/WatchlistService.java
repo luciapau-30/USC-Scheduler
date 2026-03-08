@@ -37,7 +37,7 @@ public class WatchlistService {
 			throw new WatchlistException("Section already in watchlist");
 		}
 		Instant now = Instant.now();
-		Watchlist w = new Watchlist(user, request.termCode(), request.sisSectionId(), request.priority(), now);
+		Watchlist w = new Watchlist(user, request.termCode(), request.sisSectionId(), request.coursePrefix(), request.priority(), now);
 		w = watchlistRepository.save(w);
 		return toResponse(w);
 	}
@@ -53,6 +53,7 @@ public class WatchlistService {
 				w.getId(),
 				w.getTermCode(),
 				w.getSisSectionId(),
+				w.getCoursePrefix(),
 				w.getPriority(),
 				w.getCreatedAt()
 		);
