@@ -1,8 +1,6 @@
 [build]
 builder = "DOCKERFILE"
 dockerfilePath = "Dockerfile"
-# Note: set Root Directory = "backend" in Railway service Settings → General
-# so this Dockerfile resolves to backend/Dockerfile with correct COPY paths
 
 [deploy]
 healthcheckPath = "/actuator/health"
