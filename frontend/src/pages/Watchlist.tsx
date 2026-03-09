@@ -1,17 +1,13 @@
 import { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { listWatchlist, removeWatchlist, type WatchlistItem } from '../api/watchlist';
-import { useNotifications } from '../hooks/useNotifications';
 import './Watchlist.css';
 
 export default function Watchlist() {
   const [items, setItems] = useState<WatchlistItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
-  const [alert, setAlert] = useState<{ termCode: string; sisSectionId: string } | null>(null);
-
-  useNotifications((payload) => {
-    if (payload.eventType === 'seat_opened') setAlert({ termCode: payload.termCode, sisSectionId: payload.sisSectionId });
-  });
+  const navigate = useNavigate();
 
   async function load() {
     setLoading(true);
@@ -39,15 +35,23 @@ export default function Watchlist() {
     }
   }
 
+  function termLabel(termCode: string): string {
+    const map: Record<string, string> = {
+      '20263': 'Fall 2026',
+      '20261': 'Spring 2026',
+      '20256': 'Summer 2026',
+      '20253': 'Fall 2025',
+      '20251': 'Spring 2025',
+    };
+    return map[termCode] ?? termCode;
+  }
+
   return (
     <div className="watchlist-page">
       <h1>Watchlist</h1>
-      {alert && (
-        <div className="watchlist-alert">
-          A seat opened for section {alert.sisSectionId} (term {alert.termCode}).{' '}
-          <button type="button" onClick={() => setAlert(null)}>Dismiss</button>
-        </div>
-      )}
+      <p className="watchlist-hint">
+        You'll receive a notification when a seat opens in a watched section.
+      </p>
       {error && <p className="watchlist-error">{error}</p>}
       {loading ? (
         <p>Loading…</p>
@@ -57,8 +61,26 @@ export default function Watchlist() {
         <ul className="watchlist-list">
           {items.map((item) => (
             <li key={item.id} className="watchlist-item">
-              <span>{item.termCode} · {item.sisSectionId}</span>
-              <button type="button" onClick={() => handleRemove(item)} className="watchlist-remove">Remove</button>
+              <div className="watchlist-item-info">
+                <span className="watchlist-section-id">{item.sisSectionId}</span>
+                <span className="watchlist-term">{termLabel(item.termCode)}</span>
+                {item.coursePrefix && (
+                  <button
+                    type="button"
+                    className="watchlist-search-link"
+                    onClick={() => navigate(`/search?q=${encodeURIComponent(item.coursePrefix ?? '')}`)}
+                  >
+                    View in search →
+                  </button>
+                )}
+              </div>
+              <button
+                type="button"
+                onClick={() => handleRemove(item)}
+                className="watchlist-remove"
+              >
+                Remove
+              </button>
             </li>
           ))}
         </ul>

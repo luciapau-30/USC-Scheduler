@@ -1,5 +1,6 @@
 import { Outlet, NavLink } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import NotificationToast from './NotificationToast';
 import './Layout.css';
 
 export default function Layout() {
@@ -18,6 +19,7 @@ export default function Layout() {
       <main className="layout-main">
         <Outlet />
       </main>
+      <NotificationToast />
     </div>
   );
 }

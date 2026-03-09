@@ -1,5 +1,20 @@
 const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8080';
 
+function isNetworkError(e: unknown): boolean {
+  if (e instanceof TypeError) return e.message === 'Failed to fetch' || e.message.includes('fetch');
+  if (e instanceof Error) return e.message === 'Failed to fetch' || e.message.includes('Load failed');
+  return false;
+}
+
+function wrapNetworkError(e: unknown): never {
+  if (isNetworkError(e)) {
+    throw new Error(
+      `Cannot reach the server at ${API_URL}. Is the backend running? Start it from the backend folder: ./mvnw spring-boot:run`
+    );
+  }
+  throw e;
+}
+
 export type TokenSetter = (token: string | null) => void;
 
 let accessToken: string | null = null;
@@ -27,21 +42,31 @@ export async function api(
   const headers = new Headers(init.headers);
   if (!headers.has('Content-Type')) headers.set('Content-Type', 'application/json');
   if (!skipAuth && accessToken) headers.set('Authorization', `Bearer ${accessToken}`);
-  const res = await fetch(url, { ...init, headers, credentials: 'include' });
-  if (res.status === 401 && !skipAuth && !_retried) {
+  let res: Response;
+  try {
+    res = await fetch(url, { ...init, headers, credentials: 'include' });
+  } catch (e) {
+    wrapNetworkError(e);
+  }
+  if (res!.status === 401 && !skipAuth && !_retried) {
     const refreshed = await refreshToken();
     if (refreshed) return api(path, { ...options, _retried: true });
   }
-  return res;
+  return res!;
 }
 
 async function refreshToken(): Promise<boolean> {
-  const res = await fetch(`${API_URL}/api/auth/refresh`, { method: 'POST', credentials: 'include' });
-  if (!res.ok) {
+  let res: Response;
+  try {
+    res = await fetch(`${API_URL}/api/auth/refresh`, { method: 'POST', credentials: 'include' });
+  } catch (e) {
+    wrapNetworkError(e);
+  }
+  if (!res!.ok) {
     setAccessToken(null);
     return false;
   }
-  const data = await res.json();
+  const data = await res!.json();
   if (data.accessToken) setAccessToken(data.accessToken);
   return !!data.accessToken;
 }

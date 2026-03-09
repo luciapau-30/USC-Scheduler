@@ -1,25 +1,12 @@
 .watchlist-page h1 {
-  margin: 0 0 24px;
+  margin: 0 0 8px;
   font-size: 1.5rem;
 }
 
-.watchlist-alert {
-  background: rgba(63, 185, 80, 0.15);
-  border: 1px solid var(--success);
-  border-radius: 8px;
-  padding: 12px 16px;
-  margin-bottom: 16px;
-  display: flex;
-  align-items: center;
-  gap: 12px;
-}
-
-.watchlist-alert button {
-  background: transparent;
-  border: 1px solid var(--success);
-  color: var(--success);
-  padding: 4px 10px;
-  border-radius: 4px;
+.watchlist-hint {
+  color: var(--muted);
+  font-size: 0.875rem;
+  margin: 0 0 24px;
 }
 
 .watchlist-error {
@@ -41,8 +28,41 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
+  gap: 12px;
   padding: 12px 0;
   border-bottom: 1px solid var(--border);
+}
+
+.watchlist-item-info {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  flex-wrap: wrap;
+}
+
+.watchlist-section-id {
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+
+.watchlist-term {
+  font-size: 0.8rem;
+  color: var(--muted);
+}
+
+.watchlist-search-link {
+  background: transparent;
+  border: none;
+  color: var(--accent);
+  font-size: 0.8rem;
+  cursor: pointer;
+  padding: 0;
+  text-decoration: underline;
+  text-underline-offset: 2px;
+}
+
+.watchlist-search-link:hover {
+  opacity: 0.8;
 }
 
 .watchlist-remove {
@@ -51,6 +71,7 @@
   color: var(--muted);
   padding: 6px 12px;
   border-radius: 6px;
+  white-space: nowrap;
 }
 
 .watchlist-remove:hover {

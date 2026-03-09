@@ -60,7 +60,10 @@ public class AuthService {
 		return new TokenResponse(accessToken, jwtService.getAccessTokenTtlSeconds());
 	}
 
+	@Transactional
 	public TokenResponse refresh(HttpServletRequest req, HttpServletResponse res) {
+		// @Transactional keeps the Hibernate session open so user.getEmail() doesn't
+		// hit LazyInitializationException on the proxy returned from rotateAndSetCookie.
 		User user = refreshTokenService.rotateAndSetCookie(req, res);
 		String accessToken = jwtService.createAccessToken(user.getId(), user.getEmail());
 		return new TokenResponse(accessToken, jwtService.getAccessTokenTtlSeconds());
