@@ -1,0 +1,233 @@
+# TrojanScheduler — Cloud Deployment Guide
+
+Deploy the app so anyone can use it at a public URL — no installation needed.
+
+**Stack:**
+- **Frontend** → [Vercel](https://vercel.com) (free)
+- **Backend** → [Railway](https://railway.app) (free tier: $5 credit/month)
+- **Database** → Railway MySQL plugin (included)
+
+**Total cost:** Free for personal / small-team use within Railway's free tier.
+
+**Time to deploy:** ~20 minutes the first time.
+
+---
+
+## Overview
+
+```
+Browser  ──HTTPS──▶  Vercel (React app)
+                          │  HTTPS API calls
+                          ▼
+                     Railway (Spring Boot)
+                          │  JDBC
+                          ▼
+                     Railway MySQL
+```
+
+---
+
+## Step 1 — Push your code to GitHub
+
+Railway and Vercel both deploy directly from GitHub. If you haven't already:
+
+```bash
+# From the project root
+git remote add origin https://github.com/YOUR_USERNAME/trojanscheduler.git
+git push -u origin main
+```
+
+Make sure the repo contains at least:
+- `backend/` with `Dockerfile`
+- `frontend/` with `vercel.json`
+
+---
+
+## Step 2 — Deploy the backend on Railway
+
+### 2a. Create a Railway account
+
+Go to [railway.app](https://railway.app) → sign up with GitHub (recommended — it links your repos automatically).
+
+### 2b. Create a new project
+
+1. Click **New Project**
+2. Choose **Deploy from GitHub repo**
+3. Select your `trojanscheduler` repository
+4. Railway will detect the `backend/Dockerfile` — confirm it
+
+Railway will start building immediately. The first build takes ~3–5 minutes (it downloads Maven dependencies).
+
+### 2c. Add a MySQL database
+
+Inside your Railway project:
+
+1. Click **+ New** → **Database** → **MySQL**
+2. Railway provisions a MySQL 8 instance and wires it into your project automatically
+
+### 2d. Set environment variables
+
+In the Railway dashboard, click your **backend service** → **Variables** tab → add these:
+
+| Variable | Value |
+|----------|-------|
+| `DB_URL` | Copy from the MySQL plugin's **MYSQL_URL** variable, but replace the scheme: `jdbc:mysql://...` (see note below) |
+| `DB_USERNAME` | Copy from MySQL plugin → `MYSQLUSER` |
+| `DB_PASSWORD` | Copy from MySQL plugin → `MYSQLPASSWORD` |
+| `JWT_SECRET` | A random string, 32+ characters. Generate one: `openssl rand -base64 32` |
+| `ALLOWED_ORIGINS` | Leave blank for now — you'll add your Vercel URL in Step 3 |
+| `REFRESH_COOKIE_SECURE` | `true` |
+| `REFRESH_COOKIE_SAMESITE` | `None` |
+
+> **DB_URL note:** Railway's MySQL plugin gives you a URL like `mysql://user:pass@host:port/db`. You need to prefix it with `jdbc:` and add parameters:
+> ```
+> jdbc:mysql://HOST:PORT/DB_NAME?useSSL=true&serverTimezone=UTC
+> ```
+> Copy the host, port, and database name from the plugin's connection details tab.
+
+### 2e. Get your backend URL
+
+Once deployed, Railway gives you a public URL like:
+```
+https://trojanscheduler-production-xxxx.up.railway.app
+```
+
+Find it under your backend service → **Settings** → **Networking** → **Public Networking** → click **Generate Domain** if none exists.
+
+Copy this URL — you need it for Step 3.
+
+---
+
+## Step 3 — Deploy the frontend on Vercel
+
+### 3a. Create a Vercel account
+
+Go to [vercel.com](https://vercel.com) → sign up with GitHub.
+
+### 3b. Import your repository
+
+1. Click **Add New Project**
+2. Import your `trojanscheduler` GitHub repository
+3. Vercel auto-detects it as a Vite project
+
+### 3c. Configure build settings
+
+In the project setup screen:
+
+| Setting | Value |
+|---------|-------|
+| **Framework Preset** | Vite |
+| **Root Directory** | `frontend` |
+| **Build Command** | `npm run build` |
+| **Output Directory** | `dist` |
+
+### 3d. Set environment variables
+
+Still in the setup screen, click **Environment Variables** and add:
+
+| Variable | Value |
+|----------|-------|
+| `VITE_API_URL` | Your Railway backend URL from Step 2e (e.g. `https://trojanscheduler-production-xxxx.up.railway.app`) |
+
+### 3e. Deploy
+
+Click **Deploy**. Vercel builds and deploys in ~1 minute.
+
+Your app is now live at something like:
+```
+https://trojanscheduler.vercel.app
+```
+
+---
+
+## Step 4 — Connect them together (CORS)
+
+The backend needs to know the Vercel URL so it allows requests from it.
+
+In Railway → backend service → **Variables**:
+
+```
+ALLOWED_ORIGINS = https://trojanscheduler.vercel.app,http://localhost:5173
+```
+
+> Keep `localhost:5173` so local development still works.
+
+Railway will redeploy automatically when you save. Takes ~30 seconds.
+
+---
+
+## Step 5 — Verify everything works
+
+1. Open your Vercel URL in a browser
+2. Register a new account
+3. Search for a course (`CSCI`, term `20263`)
+4. Add a section to your schedule → should appear on the calendar
+5. Add a section to your watchlist
+6. Open the app on your phone → login works, watchlist shows the same item, schedule is empty (localStorage is per-device)
+
+---
+
+## Redeployment (ongoing)
+
+Every time you push to `main`:
+- **Vercel** redeploys the frontend automatically (~1 min)
+- **Railway** redeploys the backend automatically (~3 min)
+
+No manual steps needed.
+
+---
+
+## Custom domain (optional)
+
+### Vercel
+Settings → Domains → Add → enter your domain → follow the DNS instructions (CNAME record pointing to `cname.vercel-dns.com`).
+
+### Railway
+Backend service → Settings → Networking → Custom Domain → add your subdomain (e.g. `api.yourdomain.com`) → add a CNAME record in your DNS provider pointing to Railway's domain.
+
+Then update `VITE_API_URL` in Vercel and `ALLOWED_ORIGINS` in Railway to match.
+
+---
+
+## Troubleshooting
+
+**Backend build fails on Railway**
+
+Check the build logs. Common causes:
+- Maven download timeout → Railway will retry; just redeploy
+- Java version mismatch → the `Dockerfile` uses `eclipse-temurin:21`, which matches the project's requirement
+
+**"CORS error" in browser console**
+
+`ALLOWED_ORIGINS` in Railway doesn't include your Vercel URL. Add it exactly (no trailing slash) and redeploy the backend.
+
+**Login works but refresh fails (401 loop)**
+
+`REFRESH_COOKIE_SECURE` must be `true` and `REFRESH_COOKIE_SAMESITE` must be `None` when frontend and backend are on different domains (Vercel vs Railway). These are required for cross-site cookies over HTTPS.
+
+**WebSocket notifications not working**
+
+Railway supports WebSockets by default. If you added a custom domain, make sure your DNS/proxy (e.g. Cloudflare) has WebSocket proxying enabled.
+
+**Railway free tier limit**
+
+Railway's free tier includes $5 of credit per month. A small Spring Boot app + MySQL typically uses ~$2–3/month. If you exceed it, Railway pauses the service. Upgrade to the Hobby plan ($5/month) for uninterrupted uptime.
+
+---
+
+## Local Docker testing (optional)
+
+Before deploying, you can test the full Docker setup locally:
+
+```bash
+# From the project root
+DB_PASSWORD=testpass JWT_SECRET=dev-change-me-dev-change-me-dev docker compose up --build
+```
+
+- Frontend: http://localhost:5173
+- Backend: http://localhost:8080
+- MySQL: localhost:3306
+
+To stop: `Ctrl+C` then `docker compose down`.
+
+To wipe the database and start fresh: `docker compose down -v`.
