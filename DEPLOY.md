@@ -47,16 +47,18 @@ Make sure the repo contains at least:
 
 ### 2a. Create a Railway account
 
-Go to [railway.app](https://railway.app) → sign up with GitHub (recommended — it links your repos automatically).
+Go to [railway.app](c) → sign up with GitHub (recommended — it links your repos automatically).
 
 ### 2b. Create a new project
 
 1. Click **New Project**
 2. Choose **Deploy from GitHub repo**
 3. Select your `trojanscheduler` repository
-4. Railway will detect the `backend/Dockerfile` — confirm it
-
-Railway will start building immediately. The first build takes ~3–5 minutes (it downloads Maven dependencies).
+4. **Set the root directory** so the backend builds correctly:
+   - Click your **backend service** → **Settings** → **General**
+   - Set **Root Directory** to `backend` (so Railway uses `backend/Dockerfile` and the correct `pom.xml` / `src`)
+   - If you prefer to build from the repo root, leave Root Directory empty — the repo has a root `Dockerfile` that builds the backend from `backend/`
+5. Railway will detect the Dockerfile and start building. The first build takes ~3–5 minutes (Maven downloads dependencies).
 
 ### 2c. Add a MySQL database
 
@@ -193,9 +195,18 @@ Then update `VITE_API_URL` in Vercel and `ALLOWED_ORIGINS` in Railway to match.
 
 **Backend build fails on Railway**
 
-Check the build logs. Common causes:
-- Maven download timeout → Railway will retry; just redeploy
-- Java version mismatch → the `Dockerfile` uses `eclipse-temurin:21`, which matches the project's requirement
+Check the build logs in Railway → your service → **Deployments** → click the failed build → **View logs**.
+
+Common causes:
+
+| Symptom | Fix |
+|--------|-----|
+| `COPY failed: file not found`, `pom.xml not found`, or `src` not found | Set **Root Directory** to `backend`: Service → **Settings** → **General** → **Root Directory** = `backend`. Then redeploy. |
+| Maven dependency download timeout | Redeploy; Railway will retry. If it keeps failing, try again in a few minutes (network blip). |
+| Out of memory during build | Railway’s default builder has limited memory. Set **Root Directory** to `backend` so only that folder is in the build context, and redeploy. |
+| Java version mismatch | The Dockerfiles use `eclipse-temurin:21`; the project requires Java 21. No change needed unless you edited the Dockerfile. |
+
+If it still fails, copy the **last 30–50 lines** of the build log (the red error part) and use that to debug (e.g. missing env var, or a specific Maven/Flyway error).
 
 **"CORS error" in browser console**
 
