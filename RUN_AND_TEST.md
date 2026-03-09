@@ -28,27 +28,55 @@ The backend expects a MySQL database. Default config (see `backend/src/main/reso
 
 You can override with env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 
+**How to do it (quick path):**
+
+1. **Install MySQL** (if needed): on macOS with Homebrew run `brew install mysql`; on Windows use the [MySQL installer](https://dev.mysql.com/downloads/installer/).
+2. **Start MySQL:**  
+   - macOS (Homebrew): `brew services start mysql`  
+   - Windows: start the “MySQL” service in Services or from the MySQL installer.  
+   - Linux: `sudo systemctl start mysql`
+3. **Use the default connection (easiest):** If your MySQL `root` user has **no password**, do nothing else. When you start the backend (Step 3 below), it will create the `trojanscheduler` database and tables automatically.
+4. **If `root` has a password:** When starting the backend, set it:  
+   `DB_PASSWORD=your_mysql_root_password ./mvnw spring-boot:run`  
+   (run that from the `backend` folder.)
+
 **Option A – Use defaults (empty root password)**  
 Ensure MySQL is running. The app will create the database `trojanscheduler` on first run (Flyway will create tables).
 
 **Option B – Custom database/user**  
-Create DB and user, then set env before starting the backend:
+Create the database and a dedicated user, then set env before starting the backend.
 
-```bash
-# In MySQL (or MySQL Workbench):
-CREATE DATABASE IF NOT EXISTS trojanscheduler;
-CREATE USER IF NOT EXISTS 'tsuser'@'localhost' IDENTIFIED BY 'your_password';
-GRANT ALL ON trojanscheduler.* TO 'tsuser'@'localhost';
-FLUSH PRIVILEGES;
-```
+**How to create the database and user**
 
-Then:
+1. **Open MySQL.** Use either:
+   - **Terminal:** Log in as `root` (use your MySQL root password if you set one):
+     ```bash
+     mysql -u root -p
+     ```
+     At the prompt, type your root password and press Enter. You’ll see a `mysql>` prompt.
+   - **MySQL Workbench:** Connect to your local MySQL server (e.g. “Local instance MySQL”) using root (or an admin user).
 
-```bash
-export DB_URL="jdbc:mysql://localhost:3306/trojanscheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
-export DB_USERNAME=tsuser
-export DB_PASSWORD=your_password
-```
+2. **Run these SQL commands** (copy and paste, then press Enter). Replace `your_password` with a real password you’ll use for the app:
+   ```sql
+   CREATE DATABASE IF NOT EXISTS trojanscheduler;
+   CREATE USER IF NOT EXISTS 'tsuser'@'localhost' IDENTIFIED BY 'your_password';
+   GRANT ALL ON trojanscheduler.* TO 'tsuser'@'localhost';
+   FLUSH PRIVILEGES;
+   ```
+   - `CREATE DATABASE` creates the database the backend will use.
+   - `CREATE USER` creates a user named `tsuser` that can connect from this machine.
+   - `GRANT ALL` gives that user full access to the `trojanscheduler` database (and its tables).
+   - `FLUSH PRIVILEGES` makes MySQL apply the new permissions.
+
+3. **Exit MySQL:** Type `exit` and press Enter (terminal), or close the query tab (Workbench).
+
+4. **Tell the backend to use this user.** Before starting the backend, set these env vars (use the same password you put in the SQL above):
+   ```bash
+   export DB_URL="jdbc:mysql://localhost:3306/trojanscheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+   export DB_USERNAME=tsuser
+   export DB_PASSWORD=your_password
+   ```
+   Then start the backend (see Step 3 below). On Windows (Command Prompt) use `set DB_USERNAME=tsuser` etc. instead of `export`.
 
 **Start MySQL (if not running):**
 
@@ -84,6 +112,26 @@ curl -s http://localhost:8080/actuator/health
 ```
 
 You should get JSON with `"status":"UP"`.
+
+**Port 8080 already in use**
+
+If you see *"Web server failed to start. Port 8080 was already in use"*:
+
+1. **Find what’s using 8080:**  
+   `lsof -i :8080`  
+   Note the **PID** (second column; e.g. `90485`).
+
+2. **Stop that process:**  
+   `kill <PID>`  
+   Example: `kill 90485`. If it doesn’t exit, use `kill -9 <PID>`.
+
+3. Start the backend again: `./mvnw spring-boot:run`.
+
+**Or use another port:**  
+`SERVER_PORT=8081 ./mvnw spring-boot:run`  
+Then in the frontend set `VITE_API_URL=http://localhost:8081` in `.env` (or create it from `.env.example`).
+
+---
 
 **If Flyway fails** (e.g. “Migration checksum mismatch”):  
 Your DB may have been changed manually. For a clean dev DB you can drop and recreate the database and run again; Flyway will re-apply all migrations.
@@ -227,6 +275,9 @@ You should get JSON with `conflict: true` (overlap on Monday/Wednesday 15:00–1
 | Issue | What to check |
 |-------|----------------|
 | Backend won’t start | Java 21 installed? MySQL running? `DB_URL` / user / password correct? Port 8080 free? |
+| **“Access denied for user 'root'@'localhost' (using password: YES)”** | You set `DB_PASSWORD` but MySQL `root` has a different password or no password. If root has no password, run without it: `./mvnw spring-boot:run`. If root has a password, use that: `DB_PASSWORD=your_actual_mysql_password ./mvnw spring-boot:run`. |
+| **“Port 8080 was already in use”** | Another process (often a previous backend) is using 8080. Stop it: `lsof -i :8080` to see the PID, then `kill <PID>`. Or run on another port: `SERVER_PORT=8081 ./mvnw spring-boot:run` (and use `VITE_API_URL=http://localhost:8081` in the frontend). |
+| **“Failed to fetch” on login/register** | Backend is not reachable. Start it first: `cd backend && ./mvnw spring-boot:run`. Use the app at http://localhost:5173 (not 127.0.0.1). |
 | Flyway / schema errors | DB in a bad state? Try dropping `trojanscheduler` and starting again so Flyway can run from scratch. |
 | Frontend “Loading…” or auth errors | Backend running on 8080? CORS allows `http://localhost:5173` (see `SecurityConfig`). |
 | Search returns nothing / error | Backend can reach `https://classes.usc.edu`; network or USC API may be down or slow. |
@@ -244,3 +295,5 @@ You should get JSON with `conflict: true` (overlap on Monday/Wednesday 15:00–1
 | 4. Test in browser | http://localhost:5173 — Register, Login, Search, Watchlist, Schedule |
 
 Once both servers are running, use the **Test the full stack** section above to verify auth, search, watchlist, schedule, and conflict detection.
+
+**To stop everything:** In the terminal where the backend is running, press **Ctrl+C**. In the terminal where the frontend is running, press **Ctrl+C**. (To stop MySQL as well: `brew services stop mysql` on macOS, or stop the MySQL service on Windows/Linux.)

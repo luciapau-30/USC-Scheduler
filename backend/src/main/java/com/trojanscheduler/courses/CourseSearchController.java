@@ -20,9 +20,10 @@ public class CourseSearchController {
 	@GetMapping(path = "/search", produces = MediaType.APPLICATION_JSON_VALUE)
 	public ResponseEntity<String> search(
 			@RequestParam String termCode,
-			@RequestParam(required = false, defaultValue = "") String q
+			@RequestParam(required = false, defaultValue = "") String q,
+			@RequestParam(required = false, defaultValue = "") String school
 	) {
-		String json = courseSearchService.search(termCode, q);
+		String json = courseSearchService.search(termCode, q, school);
 		return ResponseEntity.ok(json);
 	}
 }

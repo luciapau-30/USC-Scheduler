@@ -15,10 +15,11 @@ import com.trojanscheduler.notification.NotificationEvent;
 import com.trojanscheduler.notification.NotificationEventRepository;
 import com.trojanscheduler.notification.NotificationPublisher;
 import com.trojanscheduler.notification.dto.NotificationPayload;
+import com.trojanscheduler.section.SeatStateService;
 import com.trojanscheduler.section.SectionSeatState;
 import com.trojanscheduler.section.SectionSnapshot;
 import com.trojanscheduler.section.SectionSnapshotRepository;
-import com.trojanscheduler.section.SeatStateService;
+import com.trojanscheduler.usc.ProgramSchoolResolver;
 import com.trojanscheduler.usc.UscClient;
 import com.trojanscheduler.usc.UscClientProperties;
 import com.trojanscheduler.usc.UscException;
@@ -43,6 +44,7 @@ public class WatchlistPollingService {
 	private final NotificationPublisher notificationPublisher;
 	private final UscClient uscClient;
 	private final UscClientProperties uscProperties;
+	private final ProgramSchoolResolver programSchoolResolver;
 	private final SeatStateService seatStateService;
 
 	public WatchlistPollingService(
@@ -52,6 +54,7 @@ public class WatchlistPollingService {
 			NotificationPublisher notificationPublisher,
 			UscClient uscClient,
 			UscClientProperties uscProperties,
+			ProgramSchoolResolver programSchoolResolver,
 			SeatStateService seatStateService
 	) {
 		this.watchlistRepository = watchlistRepository;
@@ -60,6 +63,7 @@ public class WatchlistPollingService {
 		this.notificationPublisher = notificationPublisher;
 		this.uscClient = uscClient;
 		this.uscProperties = uscProperties;
+		this.programSchoolResolver = programSchoolResolver;
 		this.seatStateService = seatStateService;
 	}
 
@@ -143,8 +147,10 @@ public class WatchlistPollingService {
 	}
 
 	private String buildSearchByPrefixPath(String termCode, String prefix) {
+		String school = programSchoolResolver.getSchoolForProgram(termCode, prefix);
 		return uscProperties.getSectionPathTemplate()
 				.replace("{termCode}", java.net.URLEncoder.encode(termCode, StandardCharsets.UTF_8))
+				.replace("{school}", java.net.URLEncoder.encode(school, StandardCharsets.UTF_8))
 				.replace("{prefix}", java.net.URLEncoder.encode(prefix, StandardCharsets.UTF_8));
 	}
 

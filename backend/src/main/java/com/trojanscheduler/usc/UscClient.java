@@ -5,6 +5,7 @@ import java.util.List;
 import java.util.concurrent.TimeoutException;
 
 import org.springframework.http.HttpHeaders;
+import org.springframework.web.reactive.function.client.WebClientRequestException;
 import org.springframework.http.HttpStatusCode;
 import org.springframework.stereotype.Component;
 import org.springframework.web.reactive.function.client.ClientResponse;
@@ -77,6 +78,7 @@ public class UscClient {
 			return withTimeoutHandling.block();
 		} catch (Exception e) {
 			if (isTimeout(e)) throw new UscException("USC API timed out. Please try again in a moment.", 504, null);
+			if (isConnectionError(e)) throw new UscException("USC classes server is not reachable. Check your connection or try again in a few minutes.", 504, null);
 			throw e;
 		}
 	}
@@ -84,6 +86,21 @@ public class UscClient {
 	private static boolean isTimeout(Throwable t) {
 		for (Throwable x = t; x != null; x = x.getCause()) {
 			if (x instanceof TimeoutException) return true;
+		}
+		return false;
+	}
+
+	/** Connection refused, connect timeout, or other network failure talking to USC. */
+	private static boolean isConnectionError(Throwable t) {
+		for (Throwable x = t; x != null; x = x.getCause()) {
+			if (x instanceof WebClientRequestException) return true;
+			String name = x.getClass().getName();
+			if (name.contains("ConnectTimeoutException") || name.contains("ConnectException")
+					|| name.contains("UnknownHostException") || name.contains("IOException")) return true;
+		}
+		if (t != null && t.getMessage() != null) {
+			String msg = t.getMessage();
+			if (msg.contains("connection timed out") || msg.contains("Connection refused")) return true;
 		}
 		return false;
 	}

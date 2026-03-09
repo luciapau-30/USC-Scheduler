@@ -8,14 +8,16 @@ import org.springframework.context.annotation.Configuration;
 public class UscClientProperties {
 
 	private String baseUrl = "https://classes.usc.edu";
-	private int connectTimeoutMs = 5000;
+	private int connectTimeoutMs = 15000;
 	private int readTimeoutMs = 15000;
 	private String userAgent = "TrojanScheduler/1.0";
 	private int retryMaxAttempts = 3;
 	private long retryInitialBackoffMs = 1000;
 	private long retryMaxBackoffMs = 30000;
-	private String searchPathTemplate = "/api/Search/Basic?termCode={termCode}&searchTerm={q}";
-	private String sectionPathTemplate = "/api/Search/Basic?termCode={termCode}&searchTerm={prefix}";
+	private String searchPathTemplate = "/api/Courses/CoursesByTermSchoolProgram?termCode={termCode}&school={school}&program={program}";
+	private String sectionPathTemplate = "/api/Courses/CoursesByTermSchoolProgram?termCode={termCode}&school={school}&program={prefix}";
+	private String programsPathTemplate = "/api/Programs/TermCode?termCode={termCode}";
+	private String defaultSchool = "DRNS";
 
 	public String getBaseUrl() {
 		return baseUrl;
@@ -87,5 +89,21 @@ public class UscClientProperties {
 
 	public void setSectionPathTemplate(String sectionPathTemplate) {
 		this.sectionPathTemplate = sectionPathTemplate;
+	}
+
+	public String getDefaultSchool() {
+		return defaultSchool;
+	}
+
+	public void setDefaultSchool(String defaultSchool) {
+		this.defaultSchool = defaultSchool;
+	}
+
+	public String getProgramsPathTemplate() {
+		return programsPathTemplate;
+	}
+
+	public void setProgramsPathTemplate(String programsPathTemplate) {
+		this.programsPathTemplate = programsPathTemplate;
 	}
 }
