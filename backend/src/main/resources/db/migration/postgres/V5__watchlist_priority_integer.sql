@@ -1,0 +1,2 @@
+ALTER TABLE watchlist ALTER COLUMN priority TYPE INT;
+ALTER TABLE watchlist ALTER COLUMN priority SET DEFAULT 0;

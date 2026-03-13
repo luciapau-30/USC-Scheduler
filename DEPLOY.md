@@ -2,12 +2,15 @@
 
 Deploy the app so anyone can use it at a public URL — no installation needed.
 
-**Stack:**
-- **Frontend** → [Vercel](https://vercel.com) (free)
-- **Backend** → [Railway](https://railway.app) (free tier: $5 credit/month)
-- **Database** → Railway MySQL plugin (included)
+**Stack (choose one backend option):**
 
-**Total cost:** Free for personal / small-team use within Railway's free tier.
+| Part | Option A | Option B (if Railway fails) |
+|------|----------|-----------------------------|
+| **Frontend** | [Vercel](https://vercel.com) (free) | Same |
+| **Backend** | [Railway](https://railway.app) (free tier) | [Render](https://render.com) (free tier) |
+| **Database** | Railway MySQL | Render PostgreSQL (free) |
+
+**Total cost:** Free for personal / small-team use.
 
 **Time to deploy:** ~20 minutes the first time.
 
@@ -100,6 +103,67 @@ Copy this URL — you need it for Step 3.
 
 ---
 
+## Alternative — Deploy the backend on Render (if Railway isn’t working)
+
+Render has a free tier and a **free PostgreSQL** database. The app supports both MySQL (Railway) and PostgreSQL (Render).
+
+### Render 1. Create account and project
+
+1. Go to [render.com](https://render.com) → sign up with GitHub.
+2. **Dashboard** → **New +** → **Web Service**.
+3. Connect your GitHub repo (`trojanscheduler` or `USC-Scheduler`).
+4. Configure:
+   - **Name:** e.g. `trojanscheduler-api`
+   - **Region:** pick one close to you
+   - **Root Directory:** `backend` (so Render uses `backend/Dockerfile`)
+   - **Runtime:** **Docker**
+   - **Instance type:** **Free**
+
+### Render 2. Add PostgreSQL database
+
+1. In the same Render dashboard, **New +** → **PostgreSQL**.
+2. Name it (e.g. `trojanscheduler-db`), choose **Free** plan, create.
+3. Open the new database → **Info** tab. Note:
+   - **Internal Database URL** (use this so the app and DB talk inside Render)
+   - Or **Host**, **Database**, **Username**, **Password**, **Port** (5432)
+
+### Render 3. Set environment variables
+
+In your **Web Service** (backend) → **Environment** tab, add:
+
+| Key | Value |
+|-----|--------|
+| `SPRING_PROFILES_ACTIVE` | `postgres` |
+| `DB_URL` | `jdbc:postgresql://HOST:5432/DATABASE?sslmode=require` — replace HOST and DATABASE with the values from the PostgreSQL service (Internal Host and Database name). Example: `jdbc:postgresql://dpg-xxxx.oregon-postgres.render.com:5432/dbname?sslmode=require` |
+| `DB_USERNAME` | PostgreSQL **Username** from the DB Info tab |
+| `DB_PASSWORD` | PostgreSQL **Password** from the DB Info tab |
+| `JWT_SECRET` | A random 32+ character string (e.g. `openssl rand -base64 32`) |
+| `REFRESH_COOKIE_SECURE` | `true` |
+| `REFRESH_COOKIE_SAMESITE` | `None` |
+
+Use the **Internal** connection details (not External) so the app and DB are on the same network. If you only see one URL, use it to build `DB_URL`:  
+`jdbc:postgresql://<host>:5432/<database>?sslmode=require` and the same user/password from that URL.
+
+### Render 4. Health check (optional but recommended)
+
+In your Web Service → **Settings** → **Health Check Path**, set:
+
+```
+/actuator/health
+```
+
+So Render knows the app is up (Spring Boot exposes this endpoint).
+
+### Render 5. Deploy and get URL
+
+1. Click **Create Web Service**. Render builds the Docker image and starts the app (~3–5 min first time).
+2. Once live, copy the service URL (e.g. `https://trojanscheduler-api.onrender.com`).
+3. Use this URL as your backend URL for the frontend (Step 3) and for CORS (Step 4).
+
+**Note:** On the free tier, the service sleeps after ~15 minutes of no traffic. The first request after that may take 30–60 seconds to wake up.
+
+---
+
 ## Step 3 — Deploy the frontend on Vercel
 
 ### 3a. Create a Vercel account
@@ -144,17 +208,14 @@ https://trojanscheduler.vercel.app
 
 ## Step 4 — Connect them together (CORS)
 
-The backend needs to know the Vercel URL so it allows requests from it.
+The backend must allow your Vercel frontend origin.
 
-In Railway → backend service → **Variables**:
+- **Railway:** Backend service → **Variables** → add or edit:  
+  `ALLOWED_ORIGINS` = `https://your-app.vercel.app,http://localhost:5173`
+- **Render:** Backend service → **Environment** → add or edit:  
+  `ALLOWED_ORIGINS` = `https://your-app.vercel.app,http://localhost:5173`
 
-```
-ALLOWED_ORIGINS = https://trojanscheduler.vercel.app,http://localhost:5173
-```
-
-> Keep `localhost:5173` so local development still works.
-
-Railway will redeploy automatically when you save. Takes ~30 seconds.
+Use your real Vercel URL (no trailing slash). Keep `http://localhost:5173` for local dev. Save; the backend will redeploy.
 
 ---
 
