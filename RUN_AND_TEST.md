@@ -1,6 +1,6 @@
-# Run and test the full stack
+# Run and test the full stack (Netlify)
 
-Use this guide to run the backend and frontend together and verify the main flows.
+This guide covers running the app locally and deploying the frontend to **Netlify**. The backend runs locally or on Railway; the frontend is served from Netlify in production.
 
 ---
 
@@ -8,85 +8,50 @@ Use this guide to run the backend and frontend together and verify the main flow
 
 Install the following (if not already installed):
 
-| Tool   | Version  | Check command   |
-|--------|----------|-----------------|
-| Java   | 21       | `java -version` |
-| Maven  | 3.6+     | `./backend/mvnw -v` (or system `mvn -v`) |
-| Node.js| 18+      | `node -v`       |
-| npm    | 9+       | `npm -v`        |
-| MySQL  | 8.x      | `mysql --version` |
+| Tool    | Version | Check command                    |
+|---------|---------|-----------------------------------|
+| Java    | 21      | `java -version`                   |
+| Maven   | 3.6+    | `./backend/mvnw -v` or `mvn -v`  |
+| Node.js | 18+     | `node -v`                         |
+| npm     | 9+      | `npm -v`                          |
+| MySQL   | 8.x     | `mysql --version` (for local run) |
 
 ---
 
-## 2. MySQL setup
+## 2. MySQL setup (for local backend)
 
-The backend expects a MySQL database. Default config (see `backend/src/main/resources/application.properties`):
+The backend expects a MySQL database when running locally. Default (see `backend/src/main/resources/application.properties`):
 
 - **URL:** `jdbc:mysql://localhost:3306/trojanscheduler?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC`
 - **User:** `root`
 - **Password:** *(empty)*
 
-You can override with env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
+Override with env vars: `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`.
 
-**How to do it (quick path):**
+**Quick path:**
 
-1. **Install MySQL** (if needed): on macOS with Homebrew run `brew install mysql`; on Windows use the [MySQL installer](https://dev.mysql.com/downloads/installer/).
+1. **Install MySQL** (if needed): macOS `brew install mysql`; Windows use [MySQL installer](https://dev.mysql.com/downloads/installer/).
 2. **Start MySQL:**  
    - macOS (Homebrew): `brew services start mysql`  
-   - Windows: start the “MySQL” service in Services or from the MySQL installer.  
+   - Windows: start the MySQL service in Services.  
    - Linux: `sudo systemctl start mysql`
-3. **Use the default connection (easiest):** If your MySQL `root` user has **no password**, do nothing else. When you start the backend (Step 3 below), it will create the `trojanscheduler` database and tables automatically.
-4. **If `root` has a password:** When starting the backend, set it:  
-   `DB_PASSWORD=your_mysql_root_password ./mvnw spring-boot:run`  
-   (run that from the `backend` folder.)
+3. **Default (no root password):** Do nothing else; the backend will create the `trojanscheduler` database and tables on first run.
+4. **If root has a password:** When starting the backend:  
+   `DB_PASSWORD=your_mysql_root_password ./mvnw spring-boot:run` (from the `backend` folder).
 
-**Option A – Use defaults (empty root password)**  
-Ensure MySQL is running. The app will create the database `trojanscheduler` on first run (Flyway will create tables).
+**Custom database/user:** Create the DB and user in MySQL, then set env before starting the backend:
 
-**Option B – Custom database/user**  
-Create the database and a dedicated user, then set env before starting the backend.
+```bash
+export DB_URL="jdbc:mysql://localhost:3306/trojanscheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
+export DB_USERNAME=tsuser
+export DB_PASSWORD=your_password
+```
 
-**How to create the database and user**
-
-1. **Open MySQL.** Use either:
-   - **Terminal:** Log in as `root` (use your MySQL root password if you set one):
-     ```bash
-     mysql -u root -p
-     ```
-     At the prompt, type your root password and press Enter. You’ll see a `mysql>` prompt.
-   - **MySQL Workbench:** Connect to your local MySQL server (e.g. “Local instance MySQL”) using root (or an admin user).
-
-2. **Run these SQL commands** (copy and paste, then press Enter). Replace `your_password` with a real password you’ll use for the app:
-   ```sql
-   CREATE DATABASE IF NOT EXISTS trojanscheduler;
-   CREATE USER IF NOT EXISTS 'tsuser'@'localhost' IDENTIFIED BY 'your_password';
-   GRANT ALL ON trojanscheduler.* TO 'tsuser'@'localhost';
-   FLUSH PRIVILEGES;
-   ```
-   - `CREATE DATABASE` creates the database the backend will use.
-   - `CREATE USER` creates a user named `tsuser` that can connect from this machine.
-   - `GRANT ALL` gives that user full access to the `trojanscheduler` database (and its tables).
-   - `FLUSH PRIVILEGES` makes MySQL apply the new permissions.
-
-3. **Exit MySQL:** Type `exit` and press Enter (terminal), or close the query tab (Workbench).
-
-4. **Tell the backend to use this user.** Before starting the backend, set these env vars (use the same password you put in the SQL above):
-   ```bash
-   export DB_URL="jdbc:mysql://localhost:3306/trojanscheduler?useSSL=false&allowPublicKeyRetrieval=true&serverTimezone=UTC"
-   export DB_USERNAME=tsuser
-   export DB_PASSWORD=your_password
-   ```
-   Then start the backend (see Step 3 below). On Windows (Command Prompt) use `set DB_USERNAME=tsuser` etc. instead of `export`.
-
-**Start MySQL (if not running):**
-
-- **macOS (Homebrew):** `brew services start mysql`
-- **Windows:** Start the MySQL service from Services or MySQL installer.
-- **Linux:** `sudo systemctl start mysql` (or `mariadb`).
+(SQL to run in MySQL: `CREATE DATABASE trojanscheduler;` then create user and grant privileges.)
 
 ---
 
-## 3. Start the backend
+## 3. Start the backend (local)
 
 From the project root:
 
@@ -95,17 +60,11 @@ cd backend
 ./mvnw spring-boot:run
 ```
 
-On Windows: `mvnw.cmd spring-boot:run` (instead of `./mvnw`).
+On Windows: `mvnw.cmd spring-boot:run`.
 
-Wait until you see something like:
+Wait for: `Started BackendApplication in X.XXX seconds`. Backend is at **http://localhost:8080**.
 
-```text
-Started BackendApplication in X.XXX seconds
-```
-
-Backend will be at **http://localhost:8080**.
-
-**Quick health check:**
+**Health check:**
 
 ```bash
 curl -s http://localhost:8080/actuator/health
@@ -115,117 +74,102 @@ You should get JSON with `"status":"UP"`.
 
 **Port 8080 already in use**
 
-If you see *"Web server failed to start. Port 8080 was already in use"*:
-
-1. **Find what’s using 8080:**  
-   `lsof -i :8080`  
-   Note the **PID** (second column; e.g. `90485`).
-
-2. **Stop that process:**  
-   `kill <PID>`  
-   Example: `kill 90485`. If it doesn’t exit, use `kill -9 <PID>`.
-
-3. Start the backend again: `./mvnw spring-boot:run`.
-
-**Or use another port:**  
-`SERVER_PORT=8081 ./mvnw spring-boot:run`  
-Then in the frontend set `VITE_API_URL=http://localhost:8081` in `.env` (or create it from `.env.example`).
+- Find process: `lsof -i :8080` (note the PID).
+- Stop it: `kill <PID>` (or `kill -9 <PID>`).
+- Or use another port: `SERVER_PORT=8081 ./mvnw spring-boot:run`, then set `VITE_API_URL=http://localhost:8081` in the frontend `.env`.
 
 ---
 
-**If Flyway fails** (e.g. “Migration checksum mismatch”):  
-Your DB may have been changed manually. For a clean dev DB you can drop and recreate the database and run again; Flyway will re-apply all migrations.
-
----
-
-## 4. Start the frontend
+## 4. Start the frontend (local)
 
 Open a **second terminal**. From the project root:
 
 ```bash
 cd frontend
-```
-
-Create env file (only needed if backend is not at `http://localhost:8080`):
-
-```bash
 cp .env.example .env
-# Edit .env and set VITE_API_URL if needed (default is http://localhost:8080)
-```
-
-Install dependencies (if not already done) and run the dev server:
-
-```bash
+# Edit .env if backend is not on 8080: VITE_API_URL=http://localhost:8081
 npm install
 npm run dev
-```
-
-You should see something like:
-
-```text
-  VITE v5.x.x  ready in XXX ms
-  ➜  Local:   http://localhost:5173/
 ```
 
 Frontend is at **http://localhost:5173**.
 
 ---
 
-## 5. Test the full stack
+## 5. Test the full stack locally
 
-Use the browser at **http://localhost:5173**. Follow these steps to test the main flows.
+In the browser at **http://localhost:5173**:
 
-### 5.1 Auth
-
-1. **Register**
-   - Click “Register” (or go to `/register`).
-   - Enter email and password (e.g. `test@example.com` / `password123`).
-   - Submit → you should be logged in and redirected (e.g. to Search).
-
-2. **Log out**
-   - Click “Log out” in the header → you should land on the login page.
-
-3. **Log in**
-   - Enter the same email and password.
-   - Submit → you should be logged in again.
-
-### 5.2 Course search
-
-1. Go to **Search** (or `/search`).
-2. Leave or set **Term** (e.g. `20263`).
-3. Enter a **Search** term (e.g. `MATH` or `CSCI`).
-4. Click **Search**.
-5. You should see a list of courses/sections (from the USC API via the backend). If the USC API is slow or down, you may see an error or empty list; that’s expected when the external API fails.
-
-### 5.3 Watchlist
-
-1. On Search results, click **“Add to watchlist”** on a section.
-2. You should be redirected to **Watchlist** and see that section listed.
-3. Click **“Remove”** on the same item → it should disappear from the list.
-
-### 5.4 Schedule and conflict check
-
-1. Go back to **Search** and run a search again.
-2. Click **“Add to schedule”** on one section.
-3. You should land on **Schedule** and see that section added (no conflict).
-4. Go back to **Search**, pick **another section**, and click **“Add to schedule”**.
-   - If the two sections **overlap in time on the same day**, you should see a **“Schedule conflict”** message and the second section should **not** be added.
-   - If they don’t overlap, the second section should be added.
-5. On Schedule, click **“Remove”** on a section → it should disappear. Schedule is stored in `localStorage` (per browser).
-
-### 5.5 WebSocket notifications (optional)
-
-Watchlist “seat opened” alerts are sent over WebSocket. To see them:
-
-1. Add a section to the **watchlist** that is currently **full** (so the backend can later see a seat open).
-2. Keep the **Watchlist** page open.
-3. When the backend polling runs and detects a seat opening for that section, a green alert banner should appear on the Watchlist page.
-
-Polling runs on an interval (see `app.polling.interval-ms` in `application.properties`; default is long). For faster testing you can temporarily reduce that value and restart the backend.
+1. **Auth:** Register → Log out → Log in.
+2. **Search:** Go to Search, set term (e.g. `20263`), enter subject (e.g. `MATH` or `CSCI`), click Search. You should see courses from the USC API via the backend.
+3. **Watchlist:** Add a section to the watchlist from Search, then open Watchlist and remove it.
+4. **Schedule:** Add a section to the schedule from Search; add another that overlaps in time to see the conflict message. Remove sections from Schedule.
+5. **WebSocket (optional):** Add a full section to the watchlist, keep the Watchlist page open; when the backend detects a seat open, a notification can appear (polling interval is long by default).
 
 ---
 
-## 6. Optional: API checks with curl
+## 6. Deploy the frontend to Netlify
+
+### 6a. Push code to GitHub
+
+Ensure your repo is on GitHub (e.g. `https://github.com/YOUR_USERNAME/USC-Scheduler`).
+
+### 6b. Create a Netlify account and site
+
+1. Go to [netlify.com](https://www.netlify.com) → sign up with GitHub.
+2. **Add new site** → **Import an existing project**.
+3. Choose **GitHub** and authorize; select your repository.
+4. Configure build settings:
+
+| Setting            | Value        |
+|--------------------|-------------|
+| **Branch to deploy** | `main` (or your default) |
+| **Base directory**   | `frontend`  |
+| **Build command**    | `npm run build` |
+| **Publish directory**| `dist`      |
+
+These are also set in `frontend/netlify.toml`, so Netlify may pick them up automatically once Base directory is `frontend`.
+
+### 6c. Environment variables
+
+In Netlify: **Site settings** → **Environment variables** → **Add a variable** (or **Add from .env**).
+
+| Key             | Value |
+|-----------------|--------|
+| `VITE_API_URL`  | Your backend URL: `http://localhost:8080` for local, or your **production** backend URL (e.g. `https://your-backend.onrender.com` or `https://your-backend.up.railway.app`). |
+
+For production, use the same backend URL the browser will call (Render, Railway, etc.). No trailing slash.
+
+**Redeploy after changing env vars:** **Deploys** → **Trigger deploy** → **Clear cache and deploy site**.
+
+### 6d. Get your frontend URL
+
+After the first deploy, Netlify gives a URL like `https://random-name-12345.netlify.app`. You can change it under **Site settings** → **Domain management** → **Edit site name**.
+
+### 6e. Connect backend and frontend (CORS)
+
+Your backend must allow the Netlify origin. In your backend (Render or Railway) **Environment / Variables**:
+
+- **ALLOWED_ORIGINS** = `https://your-site-name.netlify.app,http://localhost:5173`
+
+Use your real Netlify URL (no trailing slash). Keep `http://localhost:5173` for local dev. Save so the backend redeploys.
+
+---
+
+## 7. Test the deployed app (Netlify)
+
+1. Open your Netlify URL (e.g. `https://your-site-name.netlify.app`).
+2. Register and log in (requests go to the backend URL you set in `VITE_API_URL`).
+3. Run through Search, Watchlist, and Schedule. If `VITE_API_URL` points to a production backend, everything should work the same as locally (except the backend is remote).
+
+If you see “Failed to fetch” or CORS errors, check:
+
+- `VITE_API_URL` in Netlify matches the backend the browser can reach.
+- Backend `ALLOWED_ORIGINS` includes your Netlify URL exactly.
+
+---
+
+## 8. Optional: API checks with curl
 
 **Register:**
 
@@ -245,55 +189,77 @@ curl -s -X POST http://localhost:8080/api/auth/login \
   -c cookies.txt -b cookies.txt
 ```
 
-Response includes `accessToken`. Use it for protected endpoints:
+Use the `accessToken` from the response for protected endpoints:
 
 ```bash
-# Replace YOUR_ACCESS_TOKEN with the token from the login response
 curl -s http://localhost:8080/api/watchlist \
   -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
   -b cookies.txt
 ```
 
-**Conflict check (requires a valid token):**
-
-```bash
-curl -s -X POST http://localhost:8080/api/schedule/check-conflict \
-  -H "Content-Type: application/json" \
-  -H "Authorization: Bearer YOUR_ACCESS_TOKEN" \
-  -d '{
-    "existingMeetings": [{"dayCode":"MW","startTime":"14:00","endTime":"15:20"}],
-    "candidateMeetings": [{"dayCode":"MW","startTime":"15:00","endTime":"16:20"}]
-  }'
-```
-
-You should get JSON with `conflict: true` (overlap on Monday/Wednesday 15:00–15:20).
-
 ---
 
-## 7. Troubleshooting
+## 9. Troubleshooting
 
 | Issue | What to check |
 |-------|----------------|
-| Backend won’t start | Java 21 installed? MySQL running? `DB_URL` / user / password correct? Port 8080 free? |
-| **“Access denied for user 'root'@'localhost' (using password: YES)”** | You set `DB_PASSWORD` but MySQL `root` has a different password or no password. If root has no password, run without it: `./mvnw spring-boot:run`. If root has a password, use that: `DB_PASSWORD=your_actual_mysql_password ./mvnw spring-boot:run`. |
-| **“Port 8080 was already in use”** | Another process (often a previous backend) is using 8080. Stop it: `lsof -i :8080` to see the PID, then `kill <PID>`. Or run on another port: `SERVER_PORT=8081 ./mvnw spring-boot:run` (and use `VITE_API_URL=http://localhost:8081` in the frontend). |
-| **“Failed to fetch” on login/register** | Backend is not reachable. Start it first: `cd backend && ./mvnw spring-boot:run`. Use the app at http://localhost:5173 (not 127.0.0.1). |
-| Flyway / schema errors | DB in a bad state? Try dropping `trojanscheduler` and starting again so Flyway can run from scratch. |
-| Frontend “Loading…” or auth errors | Backend running on 8080? CORS allows `http://localhost:5173` (see `SecurityConfig`). |
-| Search returns nothing / error | Backend can reach `https://classes.usc.edu`; network or USC API may be down or slow. |
-| WebSocket not connecting | Backend running; browser devtools → Network → WS; check for 403/401 (JWT on CONNECT). |
+| **MySQL: "Bootstrap failed: 5" / launchctl error** | See **MySQL won't start (macOS)** below. |
+| Backend won’t start | Java 21, MySQL running, correct `DB_*` env vars, port 8080 free. |
+| “Access denied” (MySQL) | `DB_PASSWORD` matches your MySQL user, or omit it if root has no password. |
+| Port 8080 in use | `lsof -i :8080` → `kill <PID>`, or use `SERVER_PORT=8081` and set `VITE_API_URL` in frontend. |
+| “Failed to fetch” on login/register | Backend running; use http://localhost:5173 (not 127.0.0.1). For Netlify, check `VITE_API_URL` and backend is reachable. |
+| Flyway / schema errors | DB in bad state; consider dropping and recreating the DB so Flyway can re-run migrations. |
+| Frontend “Loading…” or auth errors | Backend up; CORS includes your frontend origin (localhost:5173 or Netlify URL). |
+| Search returns nothing / error | Backend can reach `https://classes.usc.edu`; network or USC API may be down/slow. |
+| Netlify build fails | Base directory = `frontend`, build command = `npm run build`, publish = `dist`. Check build logs. |
+| Netlify app can't reach backend | `VITE_API_URL` set in Netlify env; backend `ALLOWED_ORIGINS` includes the Netlify URL. Redeploy both after changes. |
+
+**MySQL won't start (macOS) — "Bootstrap failed: 5" / Input-output error**
+
+This often means the launchd job is stuck or already loaded. Try in order:
+
+1. **Unload then start again**
+   ```bash
+   brew services stop mysql
+   brew services start mysql
+   ```
+
+2. **If that fails, unload the plist manually and restart**
+   ```bash
+   launchctl unload ~/Library/LaunchAgents/homebrew.mxcl.mysql.plist
+   brew services start mysql
+   ```
+
+3. **Run MySQL in the foreground (no launchd)**  
+   In a terminal, run:
+   ```bash
+   mysql.server start
+   ```
+   Or: `brew run mysql` (keeps running until you Ctrl+C). Use another terminal for the backend.
+
+4. **Check if MySQL is already running**  
+   If `mysql -u root` (or `mysql -u root -p`) connects, MySQL is up and you can skip `brew services start` and just run the backend.
+
+5. **Restart Mac**  
+   Sometimes launchd needs a reboot after permission or path changes.
 
 ---
 
-## 8. Summary
+## 10. Summary
+
+**Local run**
 
 | Step | Command / URL |
 |------|----------------|
-| 1. Start MySQL | `brew services start mysql` (or your OS’s method) |
+| 1. Start MySQL | `brew services start mysql` (or your OS method) |
 | 2. Start backend | `cd backend && ./mvnw spring-boot:run` → http://localhost:8080 |
 | 3. Start frontend | `cd frontend && npm install && npm run dev` → http://localhost:5173 |
-| 4. Test in browser | http://localhost:5173 — Register, Login, Search, Watchlist, Schedule |
+| 4. Test | http://localhost:5173 — Register, Login, Search, Watchlist, Schedule |
 
-Once both servers are running, use the **Test the full stack** section above to verify auth, search, watchlist, schedule, and conflict detection.
+**Deploy frontend to Netlify**
 
-**To stop everything:** In the terminal where the backend is running, press **Ctrl+C**. In the terminal where the frontend is running, press **Ctrl+C**. (To stop MySQL as well: `brew services stop mysql` on macOS, or stop the MySQL service on Windows/Linux.)
+- Connect GitHub repo, set **Base directory** = `frontend`, **Build** = `npm run build`, **Publish** = `dist`.
+- Set **VITE_API_URL** to your backend URL (local or production).
+- Set backend **ALLOWED_ORIGINS** to your Netlify URL and `http://localhost:5173`.
+
+**Stop everything (local):** Ctrl+C in the backend and frontend terminals. To stop MySQL: `brew services stop mysql` (macOS) or stop the MySQL service (Windows/Linux).

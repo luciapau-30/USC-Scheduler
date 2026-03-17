@@ -2,15 +2,17 @@
 
 Deploy the app so anyone can use it at a public URL — no installation needed.
 
-**Stack (choose one backend option):**
+**Recommended stack:**
 
-| Part | Option A | Option B (if Railway fails) |
-|------|----------|-----------------------------|
-| **Frontend** | [Vercel](https://vercel.com) (free) | Same |
-| **Backend** | [Railway](https://railway.app) (free tier) | [Render](https://render.com) (free tier) |
-| **Database** | Railway MySQL | Render PostgreSQL (free) |
+| Layer | Service | Cost |
+|-------|---------|------|
+| **Frontend** | [Netlify](https://www.netlify.com) | Free |
+| **Backend** | [Railway](https://railway.app) | ~Free for low traffic |
+| **Database** | Railway MySQL plugin | Included |
 
-**Total cost:** Free for personal / small-team use.
+**Total cost:** Free for personal / low-traffic use.
+
+**Alternative:** If Railway doesn’t work for you, use [Render](https://render.com) for the backend + PostgreSQL (see **Alternative — Deploy the backend on Render** below).
 
 **Time to deploy:** ~20 minutes the first time.
 
@@ -19,7 +21,7 @@ Deploy the app so anyone can use it at a public URL — no installation needed.
 ## Overview
 
 ```
-Browser  ──HTTPS──▶  Vercel (React app)
+Browser  ──HTTPS──▶  Netlify (React app)
                           │  HTTPS API calls
                           ▼
                      Railway (Spring Boot)
@@ -32,7 +34,7 @@ Browser  ──HTTPS──▶  Vercel (React app)
 
 ## Step 1 — Push your code to GitHub
 
-Railway and Vercel both deploy directly from GitHub. If you haven't already:
+Railway and Netlify both deploy directly from GitHub. If you haven't already:
 
 ```bash
 # From the project root
@@ -42,7 +44,7 @@ git push -u origin main
 
 Make sure the repo contains at least:
 - `backend/` with `Dockerfile`
-- `frontend/` with `vercel.json`
+- `frontend/` with `netlify.toml`
 
 ---
 
@@ -80,7 +82,7 @@ In the Railway dashboard, click your **backend service** → **Variables** tab �
 | `DB_USERNAME` | Copy from MySQL plugin → `MYSQLUSER` |
 | `DB_PASSWORD` | Copy from MySQL plugin → `MYSQLPASSWORD` |
 | `JWT_SECRET` | A random string, 32+ characters. Generate one: `openssl rand -base64 32` |
-| `ALLOWED_ORIGINS` | Leave blank for now — you'll add your Vercel URL in Step 3 |
+| `ALLOWED_ORIGINS` | Leave blank for now — you'll add your Netlify URL in Step 3 |
 | `REFRESH_COOKIE_SECURE` | `true` |
 | `REFRESH_COOKIE_SAMESITE` | `None` |
 
@@ -164,64 +166,66 @@ So Render knows the app is up (Spring Boot exposes this endpoint).
 
 ---
 
-## Step 3 — Deploy the frontend on Vercel
+## Step 3 — Deploy the frontend on Netlify
 
-### 3a. Create a Vercel account
+### 3a. Create a Netlify account
 
-Go to [vercel.com](https://vercel.com) → sign up with GitHub.
+Go to [netlify.com](https://www.netlify.com) → sign up with GitHub.
 
 ### 3b. Import your repository
 
-1. Click **Add New Project**
-2. Import your `trojanscheduler` GitHub repository
-3. Vercel auto-detects it as a Vite project
-
-### 3c. Configure build settings
-
-In the project setup screen:
+1. **Add new site** → **Import an existing project**
+2. Choose **GitHub** and authorize; select your repository
+3. Configure build settings:
 
 | Setting | Value |
 |---------|-------|
-| **Framework Preset** | Vite |
-| **Root Directory** | `frontend` |
-| **Build Command** | `npm run build` |
-| **Output Directory** | `dist` |
+| **Branch to deploy** | `main` (or your default) |
+| **Base directory** | `frontend` |
+| **Build command** | `npm run build` |
+| **Publish directory** | `dist` |
 
-### 3d. Set environment variables
+(`frontend/netlify.toml` sets these; Netlify may pick them up once Base directory is `frontend`.)
 
-Still in the setup screen, click **Environment Variables** and add:
+### 3c. Set environment variables
 
-| Variable | Value |
-|----------|-------|
+**Site settings** → **Environment variables** → **Add a variable** (or **Add from .env**):
+
+| Key | Value |
+|-----|--------|
 | `VITE_API_URL` | Your Railway backend URL from Step 2e (e.g. `https://trojanscheduler-production-xxxx.up.railway.app`) |
 
-### 3e. Deploy
+No trailing slash. For production, use the same backend URL the browser will call.
 
-Click **Deploy**. Vercel builds and deploys in ~1 minute.
+### 3d. Deploy
 
-Your app is now live at something like:
+Click **Deploy site**. Netlify builds and deploys in ~1 minute.
+
+Your app is live at a URL like:
 ```
-https://trojanscheduler.vercel.app
+https://random-name-12345.netlify.app
 ```
+
+You can change the site name under **Site settings** → **Domain management** → **Edit site name**.
 
 ---
 
 ## Step 4 — Connect them together (CORS)
 
-The backend must allow your Vercel frontend origin.
+The backend must allow your Netlify frontend origin.
 
 - **Railway:** Backend service → **Variables** → add or edit:  
-  `ALLOWED_ORIGINS` = `https://your-app.vercel.app,http://localhost:5173`
+  `ALLOWED_ORIGINS` = `https://your-site-name.netlify.app,http://localhost:5173`
 - **Render:** Backend service → **Environment** → add or edit:  
-  `ALLOWED_ORIGINS` = `https://your-app.vercel.app,http://localhost:5173`
+  `ALLOWED_ORIGINS` = `https://your-site-name.netlify.app,http://localhost:5173`
 
-Use your real Vercel URL (no trailing slash). Keep `http://localhost:5173` for local dev. Save; the backend will redeploy.
+Use your real Netlify URL (no trailing slash). Keep `http://localhost:5173` for local dev. Save; the backend will redeploy.
 
 ---
 
 ## Step 5 — Verify everything works
 
-1. Open your Vercel URL in a browser
+1. Open your Netlify URL in a browser
 2. Register a new account
 3. Search for a course (`CSCI`, term `20263`)
 4. Add a section to your schedule → should appear on the calendar
@@ -233,7 +237,7 @@ Use your real Vercel URL (no trailing slash). Keep `http://localhost:5173` for l
 ## Redeployment (ongoing)
 
 Every time you push to `main`:
-- **Vercel** redeploys the frontend automatically (~1 min)
+- **Netlify** redeploys the frontend automatically (~1 min)
 - **Railway** redeploys the backend automatically (~3 min)
 
 No manual steps needed.
@@ -242,13 +246,13 @@ No manual steps needed.
 
 ## Custom domain (optional)
 
-### Vercel
-Settings → Domains → Add → enter your domain → follow the DNS instructions (CNAME record pointing to `cname.vercel-dns.com`).
+### Netlify
+Site settings → Domain management → Add custom domain → follow the DNS instructions (e.g. CNAME or A record).
 
 ### Railway
 Backend service → Settings → Networking → Custom Domain → add your subdomain (e.g. `api.yourdomain.com`) → add a CNAME record in your DNS provider pointing to Railway's domain.
 
-Then update `VITE_API_URL` in Vercel and `ALLOWED_ORIGINS` in Railway to match.
+Then update `VITE_API_URL` in Netlify and `ALLOWED_ORIGINS` in Railway to match.
 
 ---
 
@@ -271,11 +275,11 @@ If it still fails, copy the **last 30–50 lines** of the build log (the red err
 
 **"CORS error" in browser console**
 
-`ALLOWED_ORIGINS` in Railway doesn't include your Vercel URL. Add it exactly (no trailing slash) and redeploy the backend.
+`ALLOWED_ORIGINS` in Railway doesn't include your Netlify URL. Add it exactly (no trailing slash) and redeploy the backend.
 
 **Login works but refresh fails (401 loop)**
 
-`REFRESH_COOKIE_SECURE` must be `true` and `REFRESH_COOKIE_SAMESITE` must be `None` when frontend and backend are on different domains (Vercel vs Railway). These are required for cross-site cookies over HTTPS.
+`REFRESH_COOKIE_SECURE` must be `true` and `REFRESH_COOKIE_SAMESITE` must be `None` when frontend and backend are on different domains (Netlify vs Railway). These are required for cross-site cookies over HTTPS.
 
 **WebSocket notifications not working**
 
